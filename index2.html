@@ -1,0 +1,529 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Predictive Network Performance Dashboard</title>
+    <!-- Load Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Load Chart.js for data visualization -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <!-- Tailwind Configuration -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'primary': '#4F46E5',
+                        'secondary': '#10B981',
+                        'accent': '#F59E0B',
+                        'danger': '#EF4444',
+                        'warning': '#FACC15', 
+                        'success': '#10B981',
+                        'text-light': '#F9FAFB',
+                        'card-bg': '#1F2937',
+                        'body-bg': '#111827',
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: theme('colors.body-bg');
+            color: theme('colors.text-light');
+        }
+        .card {
+            background-color: theme('colors.card-bg');
+            border: 1px solid theme('colors.gray.700', 'rgba(255, 255, 255, 0.1)');
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
+        }
+        /* Custom scrollbar for better look in dark mode */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: theme('colors.body-bg');
+        }
+        /* Changed to gray-500 from gray-600 */
+        ::-webkit-scrollbar-thumb {
+            background: theme('colors.gray.500');
+            border-radius: 4px;
+        }
+        /* Changed to gray-400 from gray-500 */
+        ::-webkit-scrollbar-thumb:hover {
+            background: theme('colors.gray.400');
+            
+        }
+    </style>
+</head>
+<body class="p-4 md:p-8">
+
+    <!-- Container to make the dashboard full width and centered on large screens -->
+    <div class="max-w-7xl mx-auto">
+        <header class="mb-8">
+            <h1 class="text-3xl md:text-5xl font-extrabold text-primary mb-2">Predictive Network Performance Dashboard</h1>
+            <p class="text-xl text-gray-400">Modeling network behavior under varying load conditions (CO4 & CO5)</p>
+        </header>
+
+        <main class="space-y-8">
+            
+            <!-- Simulation and Prediction Section (CO4 & CO5) -->
+            <section class="card p-6 rounded-xl">
+                <h2 class="text-2xl font-bold mb-4 border-b border-gray-700 pb-2 text-accent">1. Network Load Simulation & Prediction</h2>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <!-- Controls -->
+                    <div class="md:col-span-1 space-y-4">
+                        <!-- Changed text-gray-300 to text-gray-400 -->
+                        <label for="device-slider" class="block text-lg font-medium text-gray-400">
+                            Simulated Number of Devices: <span id="device-count" class="font-extrabold text-primary">70</span>
+                        </label>
+                        <input type="range" id="device-slider" min="10" max="200" value="70" step="5" class="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer range-lg">
+                        <p class="text-sm text-gray-400">Adjust the slider to simulate the network performance impact of varying loads (10 to 200 devices).</p>
+                    </div>
+                    
+                    <!-- Predicted Core Metrics -->
+                    <div class="md:col-span-2 grid grid-cols-2 lg:grid-cols-4 gap-4" id="prediction-metrics">
+                        <div class="p-3 card rounded-lg text-center">
+                            <p class="text-xl font-bold text-secondary" id="pred-latency">--</p>
+                            <p class="text-sm text-gray-400">Latency (ms)</p>
+                        </div>
+                        <div class="p-3 card rounded-lg text-center">
+                            <p class="text-xl font-bold text-secondary" id="pred-throughput-per-device">--</p>
+                            <p class="text-sm text-gray-400">Throughput/Device (Mbps)</p>
+                        </div>
+                        <div class="p-3 card rounded-lg text-center">
+                            <p class="text-xl font-bold text-danger" id="pred-jitter">--</p>
+                            <p class="text-sm text-gray-400">Jitter (ms)</p>
+                        </div>
+                        <div class="p-3 card rounded-lg text-center">
+                            <p class="text-xl font-bold text-danger" id="pred-packet-loss">--</p>
+                            <p class="text-sm text-gray-400">Packet Loss (%)</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="mt-6 p-4 rounded-lg bg-gray-800 border border-gray-700">
+                    <h3 class="text-lg font-semibold text-primary">Optimization Insight:</h3>
+                    <!-- Changed text-gray-300 to text-gray-400 -->
+                    <p id="optimization-tip" class="text-gray-400 italic"></p>
+                </div>
+            </section>
+
+            <!-- New Section for Comprehensive Metrics (CO5) -->
+            <section class="card p-6 rounded-xl">
+                <h2 class="text-2xl font-bold mb-4 border-b border-gray-700 pb-2 text-accent">2. Network Health Summary</h2>
+                <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+                    <!-- Additional Metric Card 1: Total Throughput -->
+                    <div class="p-3 card rounded-lg text-center lg:col-span-2">
+                        <p class="text-2xl font-extrabold text-success" id="pred-total-throughput">--</p>
+                        <p class="text-md text-gray-400">Predicted Total Throughput (Mbps)</p>
+                    </div>
+                    <!-- Additional Metric Card 2: Health Score -->
+                    <div class="p-3 card rounded-lg text-center lg:col-span-2">
+                        <p class="text-2xl font-extrabold text-warning" id="pred-health-score">--</p>
+                        <p class="text-md text-gray-400">Predicted Network Health Score (0-100)</p>
+                    </div>
+                </div>
+                
+                <!-- Congestion Risk SCORE LINE GRAPH (Replaced Heatmap) -->
+                <h3 class="text-xl font-bold mt-8 mb-4 text-primary">Historical Risk Score Trend (Line Graph)</h3>
+                <div class="h-80">
+                    <canvas id="riskScoreChart"></canvas>
+                </div>
+            </section>
+
+            <!-- Historical Trends Section (Chart Visualization) -->
+            <section class="card p-6 rounded-xl">
+                <h2 class="text-2xl font-bold mb-4 border-b border-gray-700 pb-2 text-accent">3. Detailed Performance Trends (Charts)</h2>
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <!-- Chart 1: Devices vs. Latency -->
+                    <div class="h-96">
+                        <canvas id="latencyChart"></canvas>
+                    </div>
+                    <!-- Chart 2: Throughput, Jitter, and Packet Loss -->
+                    <div class="h-96">
+                        <canvas id="performanceChart"></canvas>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div> <!-- End max-w-7xl mx-auto -->
+
+    <script>
+        // Data derived from the uploaded image for historical analysis
+        const networkData = [
+            { hour: "8:00 AM", devices: 20, minLatency: 16, maxLatency: 200, calculatedLatency: 34.4, bandwidthCapacity: 1000, bandwidthPerDevice: 50.0, throughputPerDevice: 37.5, jitterPerDevice: 6.0, packetLossPerDevice: 0.87 },
+            { hour: "9:00 AM", devices: 30, minLatency: 16, maxLatency: 200, calculatedLatency: 43.6, bandwidthCapacity: 1000, bandwidthPerDevice: 33.3, throughputPerDevice: 25.0, jitterPerDevice: 9.0, packetLossPerDevice: 1.03 },
+            { hour: "10:00 AM", devices: 50, minLatency: 16, maxLatency: 200, calculatedLatency: 62.0, bandwidthCapacity: 1000, bandwidthPerDevice: 20.0, throughputPerDevice: 15.0, jitterPerDevice: 15.0, packetLossPerDevice: 1.21 },
+            { hour: "11:00 AM", devices: 55, minLatency: 16, maxLatency: 200, calculatedLatency: 66.6, bandwidthCapacity: 1000, bandwidthPerDevice: 18.2, throughputPerDevice: 13.6, jitterPerDevice: 16.5, packetLossPerDevice: 1.24 },
+            { hour: "12:00 PM", devices: 70, minLatency: 16, maxLatency: 200, calculatedLatency: 80.4, bandwidthCapacity: 1000, bandwidthPerDevice: 14.3, throughputPerDevice: 10.7, jitterPerDevice: 21.0, packetLossPerDevice: 1.31 },
+            { hour: "1:00 PM", devices: 40, minLatency: 16, maxLatency: 200, calculatedLatency: 52.8, bandwidthCapacity: 1000, bandwidthPerDevice: 25.0, throughputPerDevice: 18.8, jitterPerDevice: 12.0, packetLossPerDevice: 1.14 },
+            { hour: "2:00 PM", devices: 80, minLatency: 16, maxLatency: 200, calculatedLatency: 89.6, bandwidthCapacity: 1000, bandwidthPerDevice: 12.5, throughputPerDevice: 9.4, jitterPerDevice: 24.0, packetLossPerDevice: 1.34 },
+            { hour: "3:00 PM", devices: 100, minLatency: 16, maxLatency: 200, calculatedLatency: 108.0, bandwidthCapacity: 1000, bandwidthPerDevice: 10.0, throughputPerDevice: 7.5, jitterPerDevice: 30.0, packetLossPerDevice: 1.39 },
+            { hour: "4:00 PM", devices: 70, minLatency: 16, maxLatency: 200, calculatedLatency: 80.4, bandwidthCapacity: 1000, bandwidthPerDevice: 14.3, throughputPerDevice: 10.7, jitterPerDevice: 21.0, packetLossPerDevice: 1.31 },
+            { hour: "5:00 PM", devices: 50, minLatency: 16, maxLatency: 200, calculatedLatency: 62.0, bandwidthCapacity: 1000, bandwidthPerDevice: 20.0, throughputPerDevice: 15.0, jitterPerDevice: 15.0, packetLossPerDevice: 1.21 },
+            { hour: "6:00 PM", devices: 30, minLatency: 16, maxLatency: 200, calculatedLatency: 43.6, bandwidthCapacity: 1000, bandwidthPerDevice: 33.3, throughputPerDevice: 25.0, jitterPerDevice: 9.0, packetLossPerDevice: 1.03 },
+            { hour: "7:00 PM", devices: 20, minLatency: 16, maxLatency: 200, calculatedLatency: 34.4, bandwidthCapacity: 1000, bandwidthPerDevice: 50.0, throughputPerDevice: 37.5, jitterPerDevice: 6.0, packetLossPerDevice: 0.87 },
+            { hour: "8:00 PM", devices: 10, minLatency: 16, maxLatency: 200, calculatedLatency: 25.2, bandwidthCapacity: 1000, bandwidthPerDevice: 100.0, throughputPerDevice: 75.0, jitterPerDevice: 3.0, packetLossPerDevice: 0.60 },
+        ];
+
+        // --- ENHANCE DATA WITH CALCULATED METRICS ---
+
+        // Calculate Total Throughput and a combined Risk Score for historical data
+        const enhancedNetworkData = networkData.map(d => {
+            const totalThroughput = d.devices * d.throughputPerDevice;
+
+            // Simplified Risk Score calculation (0-100, lower is better):
+            // Weight Latency (40%), Jitter (30%), Packet Loss (30%)
+            // Normalize values against a max threshold (e.g., Max Latency: 200, Max Jitter: 60, Max Loss: 5)
+            const latScore = (d.calculatedLatency / 200) * 40;
+            const jitterScore = (d.jitterPerDevice / 60) * 30;
+            const lossScore = (d.packetLossPerDevice / 5) * 30;
+
+            let riskScore = latScore + jitterScore + lossScore;
+            
+            // Cap score at 100
+            riskScore = Math.min(100, riskScore);
+
+            return {
+                ...d,
+                totalThroughput: totalThroughput,
+                riskScore: riskScore.toFixed(0)
+            };
+        });
+
+        const labels = enhancedNetworkData.map(d => d.hour);
+
+        // --- CHART INITIALIZATION ---
+
+        // Chart 1: Devices vs. Calculated Latency
+        const ctx1 = document.getElementById('latencyChart').getContext('2d');
+        new Chart(ctx1, {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [
+                    {
+                        label: 'Number of Devices',
+                        data: enhancedNetworkData.map(d => d.devices),
+                        borderColor: '#F59E0B', // Accent (Yellow/Orange)
+                        backgroundColor: 'rgba(245, 158, 11, 0.2)',
+                        fill: true,
+                        yAxisID: 'yDevices',
+                        tension: 0.3
+                    },
+                    {
+                        label: 'Calculated Latency (ms)',
+                        data: enhancedNetworkData.map(d => d.calculatedLatency),
+                        borderColor: '#4F46E5', // Primary (Indigo)
+                        backgroundColor: 'rgba(79, 70, 229, 0.1)', // Reduced fill opacity
+                        fill: true, // Fill under the latency line
+                        yAxisID: 'yLatency',
+                        tension: 0.3,
+                        borderWidth: 3,
+                        pointRadius: 4
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    title: {
+                        display: true,
+                        text: 'Load vs. Latency Over Time',
+                        // Changed to gray-300 from E5E7EB (gray-200)
+                        color: '#D1D5DB', 
+                        font: { size: 16 }
+                    },
+                    legend: {
+                         // Changed to gray-400 from D1D5DB (gray-300)
+                         labels: { color: '#9CA3AF' }
+                    }
+                },
+                scales: {
+                    x: {
+                        title: { display: true, text: 'Time', color: '#9CA3AF' },
+                        ticks: { color: '#9CA3AF' },
+                        grid: { color: 'rgba(255, 255, 255, 0.08)' } // Lighter grid for dark mode
+                    },
+                    yDevices: {
+                        type: 'linear',
+                        position: 'left',
+                        title: { display: true, text: 'Devices (Units)', color: '#F59E0B' },
+                        ticks: { color: '#F59E0B' },
+                        grid: { display: false }
+                    },
+                    yLatency: {
+                        type: 'linear',
+                        position: 'right',
+                        title: { display: true, text: 'Latency (ms)', color: '#4F46E5' },
+                        ticks: { color: '#4F46E5' },
+                        grid: { color: 'rgba(255, 255, 255, 0.15)' }
+                    }
+                }
+            }
+        });
+
+        // Chart 2: Throughput, Jitter, and Packet Loss
+        const ctx2 = document.getElementById('performanceChart').getContext('2d');
+        new Chart(ctx2, {
+            type: 'bar',
+            data: {
+                labels: labels,
+                datasets: [
+                    {
+                        label: 'Throughput/Device (Mbps)',
+                        data: enhancedNetworkData.map(d => d.throughputPerDevice),
+                        backgroundColor: '#10B981', // Secondary (Green) for bars
+                        yAxisID: 'yThroughput',
+                        hoverBackgroundColor: 'rgba(16, 185, 129, 0.8)',
+                    },
+                    {
+                        label: 'Jitter (ms) - Realtime Issue',
+                        data: enhancedNetworkData.map(d => d.jitterPerDevice),
+                        backgroundColor: 'transparent',
+                        type: 'line',
+                        yAxisID: 'yJitterLoss',
+                        tension: 0.3,
+                        borderColor: '#F59E0B', // Accent (Yellow/Orange) for Jitter
+                        pointBackgroundColor: '#F59E0B',
+                        borderWidth: 3,
+                        pointRadius: 4,
+                        fill: false,
+                    },
+                     {
+                        label: 'Packet Loss (%) - Critical',
+                        data: enhancedNetworkData.map(d => d.packetLossPerDevice),
+                        backgroundColor: 'transparent',
+                        type: 'line',
+                        yAxisID: 'yJitterLoss',
+                        tension: 0.3,
+                        borderColor: '#EF4444', // Danger (Red) for Packet Loss
+                        borderWidth: 3,
+                        borderDash: [5, 5], // Dashed line for distinction
+                        pointRadius: 4,
+                        fill: false,
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    title: {
+                        display: true,
+                        text: 'Key Performance Indicators (KPIs) Over Time',
+                        // Changed to gray-300 from E5E7EB (gray-200)
+                        color: '#D1D5DB',
+                        font: { size: 16 }
+                    },
+                     legend: {
+                         // Changed to gray-400 from D1D5DB (gray-300)
+                         labels: { color: '#9CA3AF' }
+                    }
+                },
+                scales: {
+                    x: {
+                        title: { display: true, text: 'Time', color: '#9CA3AF' },
+                        ticks: { color: '#9CA3AF' },
+                        grid: { color: 'rgba(255, 255, 255, 0.08)' }
+                    },
+                    yThroughput: {
+                        type: 'linear',
+                        position: 'left',
+                        title: { display: true, text: 'Throughput (Mbps)', color: '#10B981' },
+                        ticks: { color: '#10B981' },
+                        grid: { color: 'rgba(255, 255, 255, 0.15)' }
+                    },
+                    yJitterLoss: {
+                        type: 'linear',
+                        position: 'right',
+                        title: { display: true, text: 'Jitter/Loss (%)', color: '#EF4444' },
+                        ticks: { color: '#EF4444' },
+                        grid: { display: false }
+                    }
+                }
+            }
+        });
+        
+        // Chart 3: Risk Score Line Graph (Replaced Heatmap)
+        const ctx3 = document.getElementById('riskScoreChart').getContext('2d');
+        new Chart(ctx3, {
+            type: 'line',
+            data: {
+                labels: labels, // Use existing hour labels
+                datasets: [{
+                    label: 'Risk Score (0 = Low, 100 = High)', // Changed to English
+                    data: enhancedNetworkData.map(d => d.riskScore),
+                    borderColor: '#EF4444', 
+                    backgroundColor: 'rgba(239, 68, 68, 0.2)',
+                    fill: true,
+                    tension: 0.4, 
+                    borderWidth: 3,
+                    pointRadius: 5,
+                    pointBackgroundColor: enhancedNetworkData.map(d => {
+                        const score = Number(d.riskScore);
+                        // Color points based on risk level for clarity
+                        if (score >= 60) return '#EF4444'; // High (Red)
+                        if (score >= 30) return '#FACC15'; // Moderate (Warning/Yellow)
+                        return '#10B981'; // Low (Success/Green)
+                    }),
+                    pointBorderColor: '#1F2937', 
+                    pointBorderWidth: 2
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    title: {
+                        display: true,
+                        text: 'Historical Network Risk Score Over Time', // Changed to English
+                        // Changed to gray-300 from E5E7EB (gray-200)
+                        color: '#D1D5DB',
+                        font: { size: 16 }
+                    },
+                    legend: {
+                        // Changed to gray-400 from D1D5DB (gray-300)
+                        labels: { color: '#9CA3AF' }
+                    }
+                },
+                scales: {
+                    x: {
+                        title: { display: true, text: 'Time', color: '#9CA3AF' }, // Changed to English
+                        ticks: { color: '#9CA3AF' },
+                        grid: { color: 'rgba(255, 255, 255, 0.08)' }
+                    },
+                    y: {
+                        title: { display: true, text: 'Risk Score (0 = Low, 100 = High)', color: '#EF4444' }, // Changed to English
+                        min: 0,
+                        max: 100,
+                        ticks: { color: '#EF4444' },
+                        grid: { color: 'rgba(255, 255, 255, 0.15)' }
+                    }
+                }
+            }
+        });
+
+
+        // --- PREDICTIVE MODELING FUNCTION (CO4) ---
+
+        // Simple linear/inverse modeling based on observation from the dataset
+        function predictPerformance(devices) {
+            devices = Number(devices);
+            if (devices < 1) {
+                return {
+                    latency: 'N/A',
+                    throughputPerDevice: 'N/A',
+                    jitter: 'N/A',
+                    packetLoss: 'N/A',
+                    totalThroughput: 'N/A',
+                    healthScore: 'N/A',
+                    tip: 'Please enter a valid number of devices (10 or more).'
+                };
+            }
+
+            // Core KPIs
+            const predictedLatency = 20 + (devices * 0.88);
+            const predictedThroughputPerDevice = (1000 / devices) * 0.75;
+            const predictedJitter = devices * 0.3;
+            const predictedPacketLoss = devices * 0.014;
+
+            // Derived Metrics
+            const predictedTotalThroughput = devices * predictedThroughputPerDevice;
+
+            // Predicted Health Score (same logic as historical data)
+            const latScore = (predictedLatency / 200) * 40;
+            const jitterScore = (predictedJitter / 60) * 30;
+            const lossScore = (predictedPacketLoss / 5) * 30;
+            let healthScore = 100 - Math.min(100, latScore + jitterScore + lossScore); // 100 - Risk Score
+
+            let tip = `The network performance is normal for ${devices} devices. No immediate changes are required. Total available throughput is ${predictedTotalThroughput.toFixed(1)} Mbps.`;
+            
+            if (predictedLatency > 150) {
+                tip = `Based on the prediction, the latency is too high (${predictedLatency.toFixed(1)} ms). This indicates **Network Congestion**. Consider traffic shaping or increasing capacity.`;
+            } else if (predictedThroughputPerDevice < 5) {
+                tip = `The Throughput/Device is too low (${predictedThroughputPerDevice.toFixed(1)} Mbps). The network is **Over-subscribed**. Evaluate potential bottleneck points (e.g., core switch/router).`;
+            } else if (predictedJitter > 50) {
+                tip = `The Jitter (${predictedJitter.toFixed(1)} ms) is too high. This is a major issue for real-time applications (VoIP, Video). **Quality of Service (QoS) implementation is prioritized**.`;
+            } else if (predictedPacketLoss > 2.0) {
+                 tip = `Packet Loss (${predictedPacketLoss.toFixed(2)}%) is becoming unacceptable. This suggests **Hardware/Link Failure** or severe congestion causing drops. Investigate physical layers immediately.`;
+            }
+
+            return {
+                latency: predictedLatency.toFixed(1),
+                throughputPerDevice: predictedThroughputPerDevice.toFixed(1),
+                jitter: predictedJitter.toFixed(1),
+                packetLoss: predictedPacketLoss.toFixed(2),
+                totalThroughput: predictedTotalThroughput.toFixed(1),
+                healthScore: Math.max(0, healthScore).toFixed(0),
+                tip: tip
+            };
+        }
+
+        // --- UI & EVENT HANDLERS ---
+
+        const slider = document.getElementById('device-slider');
+        const deviceCountSpan = document.getElementById('device-count');
+        const predLatency = document.getElementById('pred-latency');
+        const predThroughputPerDevice = document.getElementById('pred-throughput-per-device');
+        const predJitter = document.getElementById('pred-jitter');
+        const predPacketLoss = document.getElementById('pred-packet-loss');
+        const predTotalThroughput = document.getElementById('pred-total-throughput');
+        const predHealthScore = document.getElementById('pred-health-score');
+        const optimizationTip = document.getElementById('optimization-tip');
+
+        // Function to update the prediction dashboard
+        function updateDashboard(devices) {
+            const result = predictPerformance(devices);
+            
+            deviceCountSpan.textContent = devices;
+            predLatency.textContent = result.latency;
+            predThroughputPerDevice.textContent = result.throughputPerDevice;
+            predJitter.textContent = result.jitter;
+            predPacketLoss.textContent = result.packetLoss;
+            predTotalThroughput.textContent = result.totalThroughput;
+            predHealthScore.textContent = result.healthScore;
+            optimizationTip.textContent = result.tip;
+            
+            // Health Score Color Logic
+            const healthScoreValue = parseFloat(result.healthScore);
+            predHealthScore.classList.remove('text-success', 'text-warning', 'text-danger');
+            if (healthScoreValue >= 80) {
+                predHealthScore.classList.add('text-success');
+            } else if (healthScoreValue >= 40) {
+                predHealthScore.classList.add('text-warning');
+            } else {
+                predHealthScore.classList.add('text-danger');
+            }
+
+
+            // Highlight metrics if they are critical
+            predLatency.classList.toggle('text-danger', parseFloat(result.latency) > 100);
+            predThroughputPerDevice.classList.toggle('text-danger', parseFloat(result.throughputPerDevice) < 10);
+            predJitter.classList.toggle('text-danger', parseFloat(result.jitter) > 30);
+            predPacketLoss.classList.toggle('text-danger', parseFloat(result.packetLoss) > 1.5);
+            
+            // Reset to secondary if not danger
+            predLatency.classList.toggle('text-secondary', parseFloat(result.latency) <= 100);
+            predThroughputPerDevice.classList.toggle('text-secondary', parseFloat(result.throughputPerDevice) >= 10);
+            predJitter.classList.toggle('text-secondary', parseFloat(result.jitter) <= 30);
+            predPacketLoss.classList.toggle('text-secondary', parseFloat(result.packetLoss) <= 1.5);
+        }
+
+        // Event listener for the slider
+        slider.addEventListener('input', (e) => {
+            updateDashboard(e.target.value);
+        });
+
+        // Initialize on load
+        window.onload = function() {
+            // Initialize the dashboard with default predicted value (70 devices)
+            updateDashboard(slider.value);
+        }
+    </script>
+</body>
+</html>
